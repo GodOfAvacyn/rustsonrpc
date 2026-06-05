@@ -1,0 +1,70 @@
+use serde::de::DeserializeOwned;
+use serde_json::{Map, Value};
+
+use crate::errors::{JsonRpcError, JsonRpcResult};
+
+pub trait IntoParams {
+    fn into_params(self) -> JsonRpcResult<Option<Value>>;
+}
+
+#[derive(Debug, Clone)]
+pub struct DynamicParams {
+    values: Map<String, Value>,
+}
+
+impl DynamicParams {
+    pub fn new(values: Map<String, Value>) -> DynamicParams {
+        DynamicParams { values }
+    }
+
+    pub fn empty() -> DynamicParams {
+        DynamicParams { values: Map::new() }
+    }
+
+    pub fn from_value(value: Option<Value>) -> JsonRpcResult<DynamicParams> {
+        match value {
+            Some(Value::Object(values)) => Ok(DynamicParams::new(values)),
+            None => Ok(DynamicParams::empty()),
+            _ => Err(JsonRpcError::invalid_params()),
+        }
+    }
+
+    pub fn get<T>(&self, name: &str) -> JsonRpcResult<T>
+    where
+        T: DeserializeOwned,
+    {
+        let value = self.values.get(name).cloned().unwrap_or(Value::Null);
+
+        serde_json::from_value(value).map_err(|_| JsonRpcError::invalid_params())
+    }
+}
+
+impl IntoParams for () {
+    fn into_params(self) -> JsonRpcResult<Option<Value>> {
+        Ok(None)
+    }
+}
+
+impl IntoParams for Option<Value> {
+    fn into_params(self) -> JsonRpcResult<Option<Value>> {
+        match self {
+            Some(Value::Object(_)) | None => Ok(self),
+            _ => Err(JsonRpcError::invalid_params()),
+        }
+    }
+}
+
+impl IntoParams for Value {
+    fn into_params(self) -> JsonRpcResult<Option<Value>> {
+        match self {
+            Value::Object(_) => Ok(Some(self)),
+            _ => Err(JsonRpcError::invalid_params()),
+        }
+    }
+}
+
+impl IntoParams for Map<String, Value> {
+    fn into_params(self) -> JsonRpcResult<Option<Value>> {
+        Ok(Some(Value::Object(self)))
+    }
+}
