@@ -81,3 +81,30 @@ impl fmt::Display for JsonRpcError {
 }
 
 impl Error for JsonRpcError {}
+
+/// Attach human-readable context to a failed [`Result`] — typically the file or
+/// resource being processed when the error occurred. The context is prepended
+/// to the error's `data` payload, so the original detail (e.g. the underlying
+/// serde message from [`crate::deserialize`]) is preserved:
+///
+/// ```ignore
+/// let state: State = rustsonrpc::deserialize(&text).context("cursor.json")?;
+/// // -> data: "cursor.json: failed to deserialize JSON: ..."
+/// ```
+pub trait Context<T> {
+    fn context(self, context: impl fmt::Display) -> Result<T>;
+}
+
+impl<T> Context<T> for Result<T> {
+    fn context(self, context: impl fmt::Display) -> Result<T> {
+        self.map_err(|mut error| {
+            let detail = match error.data.take() {
+                Some(Value::String(existing)) => format!("{context}: {existing}"),
+                Some(other) => format!("{context}: {other}"),
+                None => context.to_string(),
+            };
+            error.data = Some(Value::String(detail));
+            error
+        })
+    }
+}

@@ -47,7 +47,7 @@ macro_rules! params {
 pub mod prelude {
     pub use crate::{
         peer_builder::PeerBuilder,
-        errors::{JsonRpcError, Result},
+        errors::{Context, JsonRpcError, Result},
         listener::{Listener, TcpListener, WsListener},
         params::{DynamicParams, IntoParams},
         peer::Peer,
