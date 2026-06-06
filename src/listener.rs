@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use tokio::net::{TcpListener as TokioTcpListener, ToSocketAddrs};
-use tokio_tungstenite::{accept_async, MaybeTlsStream};
 
 use crate::{
     errors::{JsonRpcError, JsonRpcResult},
@@ -47,13 +46,13 @@ impl Listener for TcpListener {
             .await
             .map_err(|err| JsonRpcError::transport_error(format!("tcp accept failed: {err}")))?;
 
-        let (reader, writer) = TcpTransport::from_stream(stream).split();
-        Ok(BoxedTransport::new(Box::new(reader), Box::new(writer)))
+        let transport = TcpTransport::from_stream(stream);
+        let metadata = transport.metadata();
+        let (reader, writer) = transport.split();
+        Ok(BoxedTransport::new(Box::new(reader), Box::new(writer), metadata))
     }
 }
 
-/// Accepts WebSocket connections: each accepted TCP stream is upgraded via the
-/// WebSocket handshake before becoming a transport.
 pub struct WsListener {
     inner: TokioTcpListener,
 }
@@ -73,13 +72,9 @@ impl Listener for WsListener {
             JsonRpcError::transport_error(format!("websocket accept failed: {err}"))
         })?;
 
-        let stream = accept_async(MaybeTlsStream::Plain(stream))
-            .await
-            .map_err(|err| {
-                JsonRpcError::transport_error(format!("websocket handshake failed: {err}"))
-            })?;
-
-        let (reader, writer) = WsTransport::from_stream(stream).split();
-        Ok(BoxedTransport::new(Box::new(reader), Box::new(writer)))
+        let transport = WsTransport::accept(stream).await?;
+        let metadata = transport.metadata();
+        let (reader, writer) = transport.split();
+        Ok(BoxedTransport::new(Box::new(reader), Box::new(writer), metadata))
     }
 }

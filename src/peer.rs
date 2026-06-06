@@ -29,6 +29,7 @@ pub struct Peer {
     services: Services,
     pending: Pending,
     writer: Writer,
+    metadata: Arc<RwLock<Value>>,
     next_id: AtomicU64,
     next_service_id: Arc<AtomicU32>,
     start: std::sync::Mutex<Option<oneshot::Sender<()>>>,
@@ -38,6 +39,7 @@ pub struct Peer {
 
 impl Peer {
     pub(crate) fn from_registry<T: Transport>(transport: T, registry: Registry) -> Peer {
+        let metadata = Arc::new(RwLock::new(transport.metadata()));
         let (reader, writer) = transport.split();
         let (start_tx, start_rx) = oneshot::channel();
         let (closed_tx, closed_rx) = watch::channel(false);
@@ -61,6 +63,7 @@ impl Peer {
             services,
             pending,
             writer,
+            metadata,
             next_id: AtomicU64::new(0),
             next_service_id,
             start: std::sync::Mutex::new(Some(start_tx)),
@@ -73,6 +76,15 @@ impl Peer {
         if let Some(sender) = self.start.lock().unwrap().take() {
             let _ = sender.send(());
         }
+    }
+
+    /// Readable metadata about the connected peer, established when the
+    /// transport was created. The shape depends on the transport: `null` for
+    /// stdio, `{"address": ...}` for TCP, and `{"address": ..., "headers":
+    /// {...}}` for WebSocket. Wrapped in an `RwLock` so callers can read it
+    /// freely (and replace it if they choose).
+    pub fn metadata(&self) -> Arc<RwLock<Value>> {
+        self.metadata.clone()
     }
 
     pub async fn wait_closed(&self) {
