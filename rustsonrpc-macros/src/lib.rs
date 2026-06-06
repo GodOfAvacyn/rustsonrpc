@@ -75,7 +75,7 @@ pub fn rpc_service(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 &self,
                 method: ::core::primitive::u32,
                 params: ::rustsonrpc::params::DynamicParams,
-            ) -> ::rustsonrpc::errors::JsonRpcResult<::rustsonrpc::__serde_json::Value> {
+            ) -> ::rustsonrpc::errors::Result<::rustsonrpc::__serde_json::Value> {
                 match method {
                     #(#dispatch_arms)*
                     _ => ::core::result::Result::Err(
@@ -161,7 +161,7 @@ fn dispatch_arm(method: &ImplItemFn, index: u32) -> syn::Result<proc_macro2::Tok
     if matches!(method.sig.output, ReturnType::Default) {
         return Err(Error::new_spanned(
             &method.sig.ident,
-            "rpc methods must return `JsonRpcResult<T>`",
+            "rpc methods must return `Result<T>`",
         ));
     }
 

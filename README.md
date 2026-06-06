@@ -72,12 +72,12 @@ impl MathService {
     }
 
     #[rpc_method("math.add")]
-    pub fn add(&self, a: i32, b: i32) -> JsonRpcResult<i32> {
+    pub fn add(&self, a: i32, b: i32) -> Result<i32> {
         Ok(a + b)
     }
 
     #[rpc_method("math.divide")]
-    pub fn divide(&self, a: i32, b: i32) -> JsonRpcResult<i32> {
+    pub fn divide(&self, a: i32, b: i32) -> Result<i32> {
         if b == 0 {
             return Err(JsonRpcError::invalid_params());
         }
@@ -95,7 +95,7 @@ let peer = PeerBuilder::new()
     .await?;
 ```
 
-Handlers must return `JsonRpcResult<T>`, so application failures can become
+Handlers must return `Result<T>`, so application failures can become
 structured JSON-RPC errors.
 
 ## Runtime Handlers
