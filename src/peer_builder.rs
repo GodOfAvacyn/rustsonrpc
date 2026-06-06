@@ -3,7 +3,7 @@ use std::{collections::HashMap, future::Future, sync::Arc};
 use serde_json::Value;
 
 use crate::{
-    errors::JsonRpcResult,
+    errors::Result,
     params::DynamicParams,
     peer::{Handler, Peer},
     service::Service,
@@ -71,7 +71,7 @@ impl PeerBuilder {
     pub fn with_method<F, Fut>(mut self, name: impl Into<String>, handler: F) -> PeerBuilder
     where
         F: Fn(DynamicParams) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = JsonRpcResult<Value>> + Send + 'static,
+        Fut: Future<Output = Result<Value>> + Send + 'static,
     {
         self.methods.insert(
             name.into(),
@@ -94,17 +94,17 @@ impl PeerBuilder {
         peer
     }
 
-    pub async fn connect_tcp(self, addr: impl tokio::net::ToSocketAddrs) -> JsonRpcResult<Peer> {
+    pub async fn connect_tcp(self, addr: impl tokio::net::ToSocketAddrs) -> Result<Peer> {
         let transport = TcpTransport::connect(addr).await?;
         Ok(self.build(transport))
     }
 
-    pub async fn connect_ws(self, url: &str) -> JsonRpcResult<Peer> {
+    pub async fn connect_ws(self, url: &str) -> Result<Peer> {
         let transport = WsTransport::connect(url).await?;
         Ok(self.build(transport))
     }
 
-    pub async fn connect_process(self, command: tokio::process::Command) -> JsonRpcResult<Peer> {
+    pub async fn connect_process(self, command: tokio::process::Command) -> Result<Peer> {
         let transport = StdioTransport::spawn(command).await?;
         Ok(self.build(transport))
     }

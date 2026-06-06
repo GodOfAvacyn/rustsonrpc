@@ -13,16 +13,16 @@ pub use websocket::{WsReader, WsTransport, WsWriter};
 use serde_json::Value;
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-use crate::errors::{JsonRpcError, JsonRpcResult};
+use crate::errors::{JsonRpcError, Result};
 
 #[async_trait::async_trait]
 pub trait MessageReader: Send + 'static {
-    async fn read_message(&mut self) -> JsonRpcResult<Vec<u8>>;
+    async fn read_message(&mut self) -> Result<Vec<u8>>;
 }
 
 #[async_trait::async_trait]
 pub trait MessageWriter: Send + 'static {
-    async fn write_message(&mut self, msg: Vec<u8>) -> JsonRpcResult<()>;
+    async fn write_message(&mut self, msg: Vec<u8>) -> Result<()>;
 }
 
 pub trait Transport: Send + 'static {
@@ -34,7 +34,7 @@ pub trait Transport: Send + 'static {
     fn split(self) -> (Self::Reader, Self::Writer);
 }
 
-pub(crate) async fn read_line_message<R>(reader: &mut BufReader<R>) -> JsonRpcResult<Vec<u8>>
+pub(crate) async fn read_line_message<R>(reader: &mut BufReader<R>) -> Result<Vec<u8>>
 where
     R: io::AsyncRead + Unpin,
 {
@@ -55,7 +55,7 @@ where
     Ok(line)
 }
 
-pub(crate) async fn write_line_message<W>(writer: &mut W, mut msg: Vec<u8>) -> JsonRpcResult<()>
+pub(crate) async fn write_line_message<W>(writer: &mut W, mut msg: Vec<u8>) -> Result<()>
 where
     W: io::AsyncWrite + Unpin,
 {
@@ -105,14 +105,14 @@ impl Transport for BoxedTransport {
 
 #[async_trait::async_trait]
 impl MessageReader for Box<dyn MessageReader> {
-    async fn read_message(&mut self) -> JsonRpcResult<Vec<u8>> {
+    async fn read_message(&mut self) -> Result<Vec<u8>> {
         (**self).read_message().await
     }
 }
 
 #[async_trait::async_trait]
 impl MessageWriter for Box<dyn MessageWriter> {
-    async fn write_message(&mut self, msg: Vec<u8>) -> JsonRpcResult<()> {
+    async fn write_message(&mut self, msg: Vec<u8>) -> Result<()> {
         (**self).write_message(msg).await
     }
 }

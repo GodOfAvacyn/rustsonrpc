@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{error::Error, fmt};
 
-pub type JsonRpcResult<T> = Result<T, JsonRpcError>;
+pub type Result<T> = std::result::Result<T, JsonRpcError>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct JsonRpcError {

@@ -4,7 +4,7 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::errors::{JsonRpcError, JsonRpcResult};
+use crate::errors::{JsonRpcError, Result};
 
 use super::{read_line_message, write_line_message, MessageReader, MessageWriter, Transport};
 
@@ -22,7 +22,7 @@ pub struct TcpWriter {
 }
 
 impl TcpTransport {
-    pub async fn connect(addr: impl tokio::net::ToSocketAddrs) -> JsonRpcResult<TcpTransport> {
+    pub async fn connect(addr: impl tokio::net::ToSocketAddrs) -> Result<TcpTransport> {
         let stream = TcpStream::connect(addr)
             .await
             .map_err(|err| JsonRpcError::transport_error(format!("tcp connect failed: {err}")))?;
@@ -62,14 +62,14 @@ impl Transport for TcpTransport {
 
 #[async_trait::async_trait]
 impl MessageReader for TcpReader {
-    async fn read_message(&mut self) -> JsonRpcResult<Vec<u8>> {
+    async fn read_message(&mut self) -> Result<Vec<u8>> {
         read_line_message(&mut self.reader).await
     }
 }
 
 #[async_trait::async_trait]
 impl MessageWriter for TcpWriter {
-    async fn write_message(&mut self, msg: Vec<u8>) -> JsonRpcResult<()> {
+    async fn write_message(&mut self, msg: Vec<u8>) -> Result<()> {
         write_line_message(&mut self.writer, msg).await
     }
 }

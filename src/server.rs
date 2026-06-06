@@ -6,7 +6,7 @@ use tokio::{
 };
 
 use crate::{
-    errors::{JsonRpcError, JsonRpcResult},
+    errors::{JsonRpcError, Result},
     listener::Listener,
     peer::Peer,
     peer_builder::Registry,
@@ -21,7 +21,7 @@ pub struct Server {
 
 struct ServerInner {
     close: watch::Sender<bool>,
-    accept_task: Mutex<Option<JoinHandle<JsonRpcResult<()>>>>,
+    accept_task: Mutex<Option<JoinHandle<Result<()>>>>,
 }
 
 impl Server {
@@ -45,7 +45,7 @@ impl Server {
         let _ = self.inner.close.send(true);
     }
 
-    pub async fn wait_closed(&self) -> JsonRpcResult<()> {
+    pub async fn wait_closed(&self) -> Result<()> {
         let Some(accept_task) = self.inner.accept_task.lock().await.take() else {
             return Ok(());
         };
@@ -55,7 +55,7 @@ impl Server {
         })?
     }
 
-    pub async fn serve_forever(&self) -> JsonRpcResult<()> {
+    pub async fn serve_forever(&self) -> Result<()> {
         self.wait_closed().await
     }
 }
@@ -65,7 +65,7 @@ async fn accept_loop(
     registry: Registry,
     on_connect: Option<OnConnect>,
     mut close_rx: watch::Receiver<bool>,
-) -> JsonRpcResult<()> {
+) -> Result<()> {
     loop {
         tokio::select! {
             result = listener.accept() => {

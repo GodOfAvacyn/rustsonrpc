@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use tokio::net::{TcpListener as TokioTcpListener, ToSocketAddrs};
 
 use crate::{
-    errors::{JsonRpcError, JsonRpcResult},
+    errors::{JsonRpcError, Result},
     transport::{BoxedTransport, TcpTransport, Transport, WsTransport},
 };
 
@@ -16,12 +16,12 @@ use crate::{
 #[async_trait]
 pub trait Listener: Send + 'static {
     /// Bind to `addr` and start listening.
-    async fn bind<A: ToSocketAddrs + Send>(addr: A) -> JsonRpcResult<Self>
+    async fn bind<A: ToSocketAddrs + Send>(addr: A) -> Result<Self>
     where
         Self: Sized;
 
     /// Wait for and accept the next inbound connection.
-    async fn accept(&mut self) -> JsonRpcResult<BoxedTransport>;
+    async fn accept(&mut self) -> Result<BoxedTransport>;
 }
 
 /// Accepts line-delimited JSON connections over TCP.
@@ -31,7 +31,7 @@ pub struct TcpListener {
 
 #[async_trait]
 impl Listener for TcpListener {
-    async fn bind<A: ToSocketAddrs + Send>(addr: A) -> JsonRpcResult<TcpListener> {
+    async fn bind<A: ToSocketAddrs + Send>(addr: A) -> Result<TcpListener> {
         let inner = TokioTcpListener::bind(addr)
             .await
             .map_err(|err| JsonRpcError::transport_error(format!("tcp bind failed: {err}")))?;
@@ -39,7 +39,7 @@ impl Listener for TcpListener {
         Ok(TcpListener { inner })
     }
 
-    async fn accept(&mut self) -> JsonRpcResult<BoxedTransport> {
+    async fn accept(&mut self) -> Result<BoxedTransport> {
         let (stream, _) = self
             .inner
             .accept()
@@ -59,7 +59,7 @@ pub struct WsListener {
 
 #[async_trait]
 impl Listener for WsListener {
-    async fn bind<A: ToSocketAddrs + Send>(addr: A) -> JsonRpcResult<WsListener> {
+    async fn bind<A: ToSocketAddrs + Send>(addr: A) -> Result<WsListener> {
         let inner = TokioTcpListener::bind(addr)
             .await
             .map_err(|err| JsonRpcError::transport_error(format!("websocket bind failed: {err}")))?;
@@ -67,7 +67,7 @@ impl Listener for WsListener {
         Ok(WsListener { inner })
     }
 
-    async fn accept(&mut self) -> JsonRpcResult<BoxedTransport> {
+    async fn accept(&mut self) -> Result<BoxedTransport> {
         let (stream, _) = self.inner.accept().await.map_err(|err| {
             JsonRpcError::transport_error(format!("websocket accept failed: {err}"))
         })?;

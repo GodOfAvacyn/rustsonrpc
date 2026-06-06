@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::{errors::JsonRpcResult, params::DynamicParams};
+use crate::{errors::Result, params::DynamicParams};
 
 /// A collection of JSON-RPC methods that a peer keeps alive as an
 /// `Arc<dyn Service>` and routes calls into.
@@ -20,5 +20,5 @@ pub trait Service: Send + Sync + 'static {
 
     /// Execute the method identified by `method` (an index into
     /// [`Service::methods`]), decoding arguments from `params`.
-    async fn dispatch(&self, method: u32, params: DynamicParams) -> JsonRpcResult<Value>;
+    async fn dispatch(&self, method: u32, params: DynamicParams) -> Result<Value>;
 }

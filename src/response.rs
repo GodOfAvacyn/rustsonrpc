@@ -2,17 +2,17 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-use crate::errors::{JsonRpcError, JsonRpcResult};
+use crate::errors::{JsonRpcError, Result};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JsonRpcResponse<T> {
     pub jsonrpc: String,
     pub id: Value,
-    pub payload: JsonRpcResult<T>,
+    pub payload: Result<T>,
 }
 
 impl<T: Serialize> Serialize for JsonRpcResponse<T> {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("jsonrpc", &self.jsonrpc)?;
         map.serialize_entry("id", &self.id)?;
@@ -25,7 +25,7 @@ impl<T: Serialize> Serialize for JsonRpcResponse<T> {
 }
 
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for JsonRpcResponse<T> {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         #[derive(Deserialize)]
         struct Wire<T> {
             jsonrpc: String,

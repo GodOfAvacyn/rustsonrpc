@@ -16,7 +16,7 @@ use tokio::{
 
 use crate::{
     peer_builder::Registry,
-    errors::{JsonRpcError, JsonRpcResult},
+    errors::{JsonRpcError, Result},
     params::{DynamicParams, IntoParams},
     request::JsonRpcRequest,
     response::JsonRpcResponse,
@@ -92,7 +92,7 @@ impl Peer {
         let _ = closed.changed().await;
     }
 
-    pub async fn call<A>(&self, method: impl Into<String>, params: impl IntoParams) -> JsonRpcResult<A>
+    pub async fn call<A>(&self, method: impl Into<String>, params: impl IntoParams) -> Result<A>
     where
         A: serde::de::DeserializeOwned,
     {
@@ -126,7 +126,7 @@ impl Peer {
         })
     }
 
-    pub async fn notify(&self, method: impl Into<String>, params: impl IntoParams) -> JsonRpcResult<()> {
+    pub async fn notify(&self, method: impl Into<String>, params: impl IntoParams) -> Result<()> {
         let message = JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
             method: method.into(),
@@ -141,7 +141,7 @@ impl Peer {
     pub fn add_method<F, Fut>(&self, name: impl Into<String>, handler: F) -> &Self
     where
         F: Fn(DynamicParams) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = JsonRpcResult<Value>> + Send + 'static,
+        Fut: Future<Output = Result<Value>> + Send + 'static,
     {
         self.methods.write().unwrap().insert(
             name.into(),
@@ -219,7 +219,7 @@ async fn handle_message(
     pending: &Pending,
     methods: &Methods,
     services: &Services,
-) -> JsonRpcResult<()> {
+) -> Result<()> {
     match value {
         Value::Array(items) => {
             if items.is_empty() {
@@ -256,7 +256,7 @@ async fn handle_one(
     pending: &Pending,
     methods: &Methods,
     services: &Services,
-) -> JsonRpcResult<Option<Value>> {
+) -> Result<Option<Value>> {
     match value {
         Value::Object(object) => handle_object(object, pending, methods, services).await,
         _ => Ok(Some(JsonRpcError::invalid_request().to_response(None))),
@@ -268,7 +268,7 @@ async fn handle_object(
     pending: &Pending,
     methods: &Methods,
     services: &Services,
-) -> JsonRpcResult<Option<Value>> {
+) -> Result<Option<Value>> {
     let id = object.get("id").cloned();
     if !is_valid_id(id.as_ref()) {
         return Ok(Some(JsonRpcError::invalid_request().to_response(None)));
@@ -384,7 +384,7 @@ async fn deliver_response(
 async fn send_value(
     writer: &Writer,
     value: Value,
-) -> JsonRpcResult<()> {
+) -> Result<()> {
     let bytes = serde_json::to_vec(&value).map_err(|error| {
         JsonRpcError::internal_error(format!("failed to serialize message: {error}"))
     })?;
@@ -401,10 +401,10 @@ fn is_valid_id(id: Option<&Value>) -> bool {
 
 pub type Methods = Arc<RwLock<HashMap<String, Handler>>>;
 pub type Services = Arc<RwLock<HashMap<u32, Arc<dyn Service>>>>;
-pub type Pending = Arc<Mutex<HashMap<u64, oneshot::Sender<JsonRpcResult<Value>>>>>;
+pub type Pending = Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value>>>>>;
 pub type Writer = Arc<Mutex<Box<dyn MessageWriter>>>;
 
-pub type HandlerFuture = Pin<Box<dyn Future<Output = JsonRpcResult<Value>> + Send + 'static>>;
+pub type HandlerFuture = Pin<Box<dyn Future<Output = Result<Value>> + Send + 'static>>;
 pub type MethodFn = Arc<dyn Fn(DynamicParams) -> HandlerFuture + Send + Sync + 'static>;
 
 #[derive(Clone)]

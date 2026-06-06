@@ -3,7 +3,7 @@ use std::{collections::HashMap, future::Future, sync::Arc};
 use serde_json::Value;
 
 use crate::{
-    errors::JsonRpcResult,
+    errors::Result,
     listener::{Listener, TcpListener, WsListener},
     params::DynamicParams,
     peer::{Handler, Peer},
@@ -42,7 +42,7 @@ impl ServerBuilder {
     pub fn with_method<F, Fut>(mut self, name: impl Into<String>, handler: F) -> ServerBuilder
     where
         F: Fn(DynamicParams) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = JsonRpcResult<Value>> + Send + 'static,
+        Fut: Future<Output = Result<Value>> + Send + 'static,
     {
         self.methods.insert(
             name.into(),
@@ -73,7 +73,7 @@ impl ServerBuilder {
     pub async fn serve_tcp(
         self,
         addr: impl tokio::net::ToSocketAddrs + Send,
-    ) -> JsonRpcResult<Server> {
+    ) -> Result<Server> {
         let listener = TcpListener::bind(addr).await?;
         let (registry, on_connect) = self.into_parts();
         Ok(Server::serve(Box::new(listener), registry, on_connect))
@@ -82,7 +82,7 @@ impl ServerBuilder {
     pub async fn serve_ws(
         self,
         addr: impl tokio::net::ToSocketAddrs + Send,
-    ) -> JsonRpcResult<Server> {
+    ) -> Result<Server> {
         let listener = WsListener::bind(addr).await?;
         let (registry, on_connect) = self.into_parts();
         Ok(Server::serve(Box::new(listener), registry, on_connect))

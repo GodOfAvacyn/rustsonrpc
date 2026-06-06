@@ -16,7 +16,7 @@ use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
 };
 
-use crate::errors::{JsonRpcError, JsonRpcResult};
+use crate::errors::{JsonRpcError, Result};
 
 use super::{MessageReader, MessageWriter, Transport};
 
@@ -34,7 +34,7 @@ pub struct WsWriter {
 }
 
 impl WsTransport {
-    pub async fn connect(url: &str) -> JsonRpcResult<WsTransport> {
+    pub async fn connect(url: &str) -> Result<WsTransport> {
         let (stream, response) = connect_async(url)
             .await
             .map_err(|err| JsonRpcError::transport_error(format!("websocket connect failed: {err}")))?;
@@ -47,7 +47,7 @@ impl WsTransport {
         Ok(WsTransport { stream, metadata })
     }
 
-    pub(crate) async fn accept(stream: TcpStream) -> JsonRpcResult<WsTransport> {
+    pub(crate) async fn accept(stream: TcpStream) -> Result<WsTransport> {
         // Grab the address before the stream is moved into the handshake.
         let address = match stream.peer_addr() {
             Ok(addr) => Value::String(addr.to_string()),
@@ -58,7 +58,7 @@ impl WsTransport {
         let sink = captured.clone();
         let stream = accept_hdr_async(
             MaybeTlsStream::Plain(stream),
-            move |request: &Request, response: Response| -> Result<Response, ErrorResponse> {
+            move |request: &Request, response: Response| -> std::result::Result<Response, ErrorResponse> {
                 *sink.lock().unwrap() = header_map_to_value(request.headers());
                 Ok(response)
             },
@@ -109,7 +109,7 @@ impl Transport for WsTransport {
 
 #[async_trait::async_trait]
 impl MessageReader for WsReader {
-    async fn read_message(&mut self) -> JsonRpcResult<Vec<u8>> {
+    async fn read_message(&mut self) -> Result<Vec<u8>> {
         loop {
             let Some(message) = self.reader.next().await else {
                 return Err(JsonRpcError::transport_error("websocket stream ended"));
@@ -131,7 +131,7 @@ impl MessageReader for WsReader {
 
 #[async_trait::async_trait]
 impl MessageWriter for WsWriter {
-    async fn write_message(&mut self, msg: Vec<u8>) -> JsonRpcResult<()> {
+    async fn write_message(&mut self, msg: Vec<u8>) -> Result<()> {
         self.writer
             .send(Message::Binary(msg.into()))
             .await

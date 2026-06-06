@@ -6,7 +6,7 @@ use tokio::{
     process::{Child, ChildStdin, ChildStdout, Command},
 };
 
-use crate::errors::{JsonRpcError, JsonRpcResult};
+use crate::errors::{JsonRpcError, Result};
 
 use super::{read_line_message, write_line_message, MessageReader, MessageWriter, Transport};
 
@@ -46,7 +46,7 @@ impl Default for StdioTransport {
 }
 
 impl StdioTransport<ChildStdout, ChildStdin> {
-    pub async fn spawn(mut command: Command) -> JsonRpcResult<StdioTransport<ChildStdout, ChildStdin>> {
+    pub async fn spawn(mut command: Command) -> Result<StdioTransport<ChildStdout, ChildStdin>> {
         let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -98,14 +98,14 @@ where
 
 #[async_trait::async_trait]
 impl<R: AsyncRead + Unpin + Send + 'static> MessageReader for StdioReader<R> {
-    async fn read_message(&mut self) -> JsonRpcResult<Vec<u8>> {
+    async fn read_message(&mut self) -> Result<Vec<u8>> {
         read_line_message(&mut self.reader).await
     }
 }
 
 #[async_trait::async_trait]
 impl<W: AsyncWrite + Unpin + Send + 'static> MessageWriter for StdioWriter<W> {
-    async fn write_message(&mut self, msg: Vec<u8>) -> JsonRpcResult<()> {
+    async fn write_message(&mut self, msg: Vec<u8>) -> Result<()> {
         write_line_message(&mut self.writer, msg).await
     }
 }

@@ -16,6 +16,24 @@ pub use serde_json as __serde_json;
 pub use async_trait as __async_trait;
 pub use rustsonrpc_macros::{rpc_method, rpc_service};
 
+use serde::{de::DeserializeOwned, Serialize};
+
+use crate::errors::{JsonRpcError, Result};
+
+/// Serialize a value to a JSON string, mapping a serialization failure to an
+/// internal error so callers stay in [`Result`](crate::errors::Result).
+pub fn serialize<T: ?Sized + Serialize>(value: &T) -> Result<String> {
+    serde_json::to_string(value)
+        .map_err(|error| JsonRpcError::internal_error(format!("failed to serialize JSON: {error}")))
+}
+
+/// Deserialize a value from a JSON string, mapping a deserialization failure to
+/// an internal error.
+pub fn deserialize<T: DeserializeOwned>(text: &str) -> Result<T> {
+    serde_json::from_str(text)
+        .map_err(|error| JsonRpcError::internal_error(format!("failed to deserialize JSON: {error}")))
+}
+
 #[macro_export]
 macro_rules! params {
     () => {
@@ -29,7 +47,7 @@ macro_rules! params {
 pub mod prelude {
     pub use crate::{
         peer_builder::PeerBuilder,
-        errors::{JsonRpcError, JsonRpcResult},
+        errors::{JsonRpcError, Result},
         listener::{Listener, TcpListener, WsListener},
         params::{DynamicParams, IntoParams},
         peer::Peer,
