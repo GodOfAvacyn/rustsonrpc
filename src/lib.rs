@@ -17,6 +17,7 @@ pub use async_trait as __async_trait;
 pub use rustsonrpc_macros::{rpc_method, rpc_service};
 
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
 
 use crate::errors::{JsonRpcError, Result};
 
@@ -31,6 +32,21 @@ pub fn serialize<T: ?Sized + Serialize>(value: &T) -> Result<String> {
 /// an internal error.
 pub fn deserialize<T: DeserializeOwned>(text: &str) -> Result<T> {
     serde_json::from_str(text)
+        .map_err(|error| JsonRpcError::internal_error(format!("failed to deserialize JSON: {error}")))
+}
+
+/// Serialize a value into a JSON [`Value`], mapping a serialization failure to
+/// an internal error. Use this (not [`serialize`]) when the result is nested
+/// into more JSON in memory rather than written out as text.
+pub fn to_value<T: Serialize>(value: T) -> Result<Value> {
+    serde_json::to_value(value)
+        .map_err(|error| JsonRpcError::internal_error(format!("failed to serialize JSON: {error}")))
+}
+
+/// Deserialize a value from a JSON [`Value`], mapping a deserialization failure
+/// to an internal error.
+pub fn from_value<T: DeserializeOwned>(value: Value) -> Result<T> {
+    serde_json::from_value(value)
         .map_err(|error| JsonRpcError::internal_error(format!("failed to deserialize JSON: {error}")))
 }
 
