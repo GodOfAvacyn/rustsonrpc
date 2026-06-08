@@ -184,9 +184,11 @@ async fn read_loop(
     methods: Methods,
     services: Services,
     start_rx: oneshot::Receiver<()>,
-    _closed_tx: watch::Sender<bool>,
+    closed_tx: watch::Sender<bool>,
 ) {
     if start_rx.await.is_err() {
+        close_pending(&pending).await;
+        let _ = closed_tx.send(true);
         return;
     }
 
@@ -210,6 +212,16 @@ async fn read_loop(
         {
             break;
         }
+    }
+
+    close_pending(&pending).await;
+    let _ = closed_tx.send(true);
+}
+
+async fn close_pending(pending: &Pending) {
+    let pending = std::mem::take(&mut *pending.lock().await);
+    for sender in pending.into_values() {
+        let _ = sender.send(Err(JsonRpcError::transport_error("connection closed")));
     }
 }
 
@@ -412,4 +424,3 @@ pub enum Handler {
     Method(MethodFn),
     Service { service: u32, method: u32 },
 }
-
