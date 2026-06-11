@@ -38,7 +38,7 @@ impl DynamicParams {
         serde_json::from_value(value).map_err(|_| JsonRpcError::invalid_params())
     }
 
-    pub fn with<T>(&mut self, name: impl Into<String>, value: T) -> Result<&mut DynamicParams>
+    pub fn with<T>(mut self, name: impl Into<String>, value: T) -> Result<DynamicParams>
     where
         T: Serialize,
     {
