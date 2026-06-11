@@ -22,12 +22,14 @@ let result: i32 = peer
     .await?;
 ```
 
-Params are named only. Pass an object with `params!`, a `serde_json::Value`
-object, a struct deriving `Params`, or `()` for no params:
+Params are named only. Pass an object with `params!`, a `DynamicParams`, a
+`serde_json::Value` object, a struct deriving `Params`, or `()` for omitted
+params. `params!()` sends empty params (`{}`):
 
 ```rust
 let sum: i32 = peer.call("add", params!({ "a": 2, "b": 3 })).await?;
 let status: Value = peer.call("health", ()).await?;
+let status: Value = peer.call("health", params!()).await?;
 
 #[derive(serde::Serialize, Params)]
 struct AddParams {

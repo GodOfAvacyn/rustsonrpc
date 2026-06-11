@@ -55,10 +55,15 @@ pub fn from_value<T: DeserializeOwned>(value: Value) -> Result<T> {
 #[macro_export]
 macro_rules! params {
     () => {
-        None
+        $crate::params::DynamicParams::empty()
     };
     ($($json:tt)+) => {
-        Some($crate::__serde_json::json!($($json)+))
+        match $crate::__serde_json::json!($($json)+) {
+            $crate::__serde_json::Value::Object(values) => {
+                $crate::params::DynamicParams::new(values)
+            }
+            _ => panic!("JSON-RPC params must be an object"),
+        }
     };
 }
 
