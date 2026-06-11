@@ -11,13 +11,13 @@ use syn::{
 #[proc_macro_derive(Params)]
 pub fn params(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ident = input.ident;
+    let ident = input.ident.clone();
 
     match input.data {
         Data::Struct(data) if matches!(data.fields, Fields::Named(_)) => {}
-        other => {
+        _ => {
             return Error::new_spanned(
-                other,
+                &ident,
                 "`Params` can only be derived for structs with named fields",
             )
             .to_compile_error()
