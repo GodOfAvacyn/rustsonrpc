@@ -1,4 +1,4 @@
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{Map, Value};
 
 use crate::errors::{JsonRpcError, Result};
@@ -36,6 +36,19 @@ impl DynamicParams {
         let value = self.values.get(name).cloned().unwrap_or(Value::Null);
 
         serde_json::from_value(value).map_err(|_| JsonRpcError::invalid_params())
+    }
+
+    pub fn with<T>(&mut self, name: impl Into<String>, value: T) -> Result<&mut DynamicParams>
+    where
+        T: Serialize,
+    {
+        let value = serde_json::to_value(value).map_err(|error| {
+            JsonRpcError::internal_error(format!("failed to serialize RPC param: {error}"))
+        })?;
+
+        self.values.insert(name.into(), value);
+
+        Ok(self)
     }
 }
 
