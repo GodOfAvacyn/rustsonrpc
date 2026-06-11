@@ -50,6 +50,17 @@ impl DynamicParams {
 
         Ok(self)
     }
+
+    pub fn extend<T>(mut self, params: T) -> Result<DynamicParams>
+    where
+        T: IntoParams,
+    {
+        if let Some(Value::Object(values)) = params.into_params()? {
+            self.values.extend(values);
+        }
+
+        Ok(self)
+    }
 }
 
 impl IntoParams for () {

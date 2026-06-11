@@ -30,6 +30,9 @@ params. `params!()` sends empty params (`{}`):
 let sum: i32 = peer.call("add", params!({ "a": 2, "b": 3 })).await?;
 let status: Value = peer.call("health", ()).await?;
 let status: Value = peer.call("health", params!()).await?;
+let sum: i32 = peer
+    .call("add", params!({ "a": 2 }).extend(params!({ "b": 3 }))?)
+    .await?;
 
 #[derive(serde::Serialize, Params)]
 struct AddParams {
