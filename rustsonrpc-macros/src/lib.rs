@@ -2,9 +2,61 @@ use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use quote::quote;
 use syn::{
-    parse_macro_input, Error, FnArg, ImplItem, ImplItemFn, ItemImpl, Lit, LitStr, Meta,
-    MetaNameValue, Pat, PatIdent, ReturnType, Type,
+    parse_macro_input, parse_quote, Data, DeriveInput, Error, Fields, FnArg, ImplItem, ImplItemFn,
+    ItemImpl, Lit, LitStr, Meta, MetaNameValue, Pat, PatIdent, ReturnType, Type,
 };
+
+/// Implements `IntoParams` for a named-field struct by serializing it as named
+/// JSON-RPC params.
+#[proc_macro_derive(Params)]
+pub fn params(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let ident = input.ident;
+
+    match input.data {
+        Data::Struct(data) if matches!(data.fields, Fields::Named(_)) => {}
+        other => {
+            return Error::new_spanned(
+                other,
+                "`Params` can only be derived for structs with named fields",
+            )
+            .to_compile_error()
+            .into();
+        }
+    }
+
+    let mut generics = input.generics;
+    generics
+        .make_where_clause()
+        .predicates
+        .push(parse_quote!(Self: ::rustsonrpc::__serde::Serialize));
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    quote! {
+        impl #impl_generics ::rustsonrpc::params::IntoParams for #ident #ty_generics #where_clause {
+            fn into_params(
+                self,
+            ) -> ::rustsonrpc::errors::Result<::core::option::Option<::rustsonrpc::__serde_json::Value>> {
+                match ::rustsonrpc::__serde_json::to_value(self) {
+                    ::core::result::Result::Ok(::rustsonrpc::__serde_json::Value::Object(values)) => {
+                        ::core::result::Result::Ok(::core::option::Option::Some(
+                            ::rustsonrpc::__serde_json::Value::Object(values),
+                        ))
+                    }
+                    ::core::result::Result::Ok(_) => ::core::result::Result::Err(
+                        ::rustsonrpc::errors::JsonRpcError::invalid_params(),
+                    ),
+                    ::core::result::Result::Err(error) => ::core::result::Result::Err(
+                        ::rustsonrpc::errors::JsonRpcError::internal_error(format!(
+                            "failed to serialize RPC params: {error}"
+                        )),
+                    ),
+                }
+            }
+        }
+    }
+    .into()
+}
 
 /// Marks an inherent impl block whose `#[rpc_method]` functions should be
 /// exposed as JSON-RPC methods.

@@ -23,11 +23,19 @@ let result: i32 = peer
 ```
 
 Params are named only. Pass an object with `params!`, a `serde_json::Value`
-object, or `()` for no params:
+object, a struct deriving `Params`, or `()` for no params:
 
 ```rust
 let sum: i32 = peer.call("add", params!({ "a": 2, "b": 3 })).await?;
 let status: Value = peer.call("health", ()).await?;
+
+#[derive(serde::Serialize, Params)]
+struct AddParams {
+    a: i32,
+    b: i32,
+}
+
+let sum: i32 = peer.call("add", AddParams { a: 2, b: 3 }).await?;
 ```
 
 Array params are rejected with `Invalid params`.

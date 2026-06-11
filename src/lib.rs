@@ -13,8 +13,10 @@ pub mod transport;
 #[doc(hidden)]
 pub use serde_json as __serde_json;
 #[doc(hidden)]
+pub use serde as __serde;
+#[doc(hidden)]
 pub use async_trait as __async_trait;
-pub use rustsonrpc_macros::{rpc_method, rpc_service};
+pub use rustsonrpc_macros::{rpc_method, rpc_service, Params};
 
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
@@ -67,7 +69,7 @@ pub mod prelude {
         listener::{Listener, TcpListener, WsListener},
         params::{DynamicParams, IntoParams},
         peer::Peer,
-        params, rpc_method, rpc_service,
+        params, rpc_method, rpc_service, Params,
         request::JsonRpcRequest,
         response::JsonRpcResponse,
         server::Server,
