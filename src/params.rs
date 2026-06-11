@@ -58,6 +58,12 @@ impl IntoParams for () {
     }
 }
 
+impl IntoParams for DynamicParams {
+    fn into_params(self) -> Result<Option<Value>> {
+        Ok(Some(Value::Object(self.values)))
+    }
+}
+
 impl IntoParams for Option<Value> {
     fn into_params(self) -> Result<Option<Value>> {
         match self {
