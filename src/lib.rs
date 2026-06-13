@@ -17,6 +17,8 @@ pub use serde as __serde;
 #[doc(hidden)]
 pub use async_trait as __async_trait;
 pub use rustsonrpc_macros::{rpc_method, rpc_service, Params};
+pub use errors::Context;
+pub use params::{DynamicParams, IntoParams};
 
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
@@ -70,19 +72,12 @@ macro_rules! params {
 pub mod prelude {
     pub use crate::{
         peer_builder::PeerBuilder,
-        errors::{Context, JsonRpcError, Result},
-        listener::{Listener, TcpListener, WsListener},
-        params::{DynamicParams, IntoParams},
+        errors::{JsonRpcError, Result},
         peer::Peer,
         params, rpc_method, rpc_service, Params,
-        request::JsonRpcRequest,
-        response::JsonRpcResponse,
         server::Server,
         server_builder::ServerBuilder,
         service::Service,
-        transport::{
-            MessageReader, MessageWriter, StdioTransport, TcpTransport, Transport, WsTransport,
-        },
     };
     pub use serde_json::Value;
 }
