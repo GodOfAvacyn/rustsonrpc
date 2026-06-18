@@ -13,6 +13,7 @@ use crate::{
 };
 
 pub type OnConnect = Arc<dyn Fn(Arc<Peer>) + Send + Sync + 'static>;
+pub type OnDisconnect = Arc<dyn Fn(Arc<Peer>) + Send + Sync + 'static>;
 
 #[derive(Clone)]
 pub struct Server {
@@ -29,9 +30,16 @@ impl Server {
         listener: Box<dyn Listener>,
         registry: Registry,
         on_connect: Option<OnConnect>,
+        on_disconnect: Option<OnDisconnect>,
     ) -> Server {
         let (close, close_rx) = watch::channel(false);
-        let accept_task = tokio::spawn(accept_loop(listener, registry, on_connect, close_rx));
+        let accept_task = tokio::spawn(accept_loop(
+            listener,
+            registry,
+            on_connect,
+            on_disconnect,
+            close_rx,
+        ));
 
         Server {
             inner: Arc::new(ServerInner {
@@ -64,6 +72,7 @@ async fn accept_loop(
     mut listener: Box<dyn Listener>,
     registry: Registry,
     on_connect: Option<OnConnect>,
+    on_disconnect: Option<OnDisconnect>,
     mut close_rx: watch::Receiver<bool>,
 ) -> Result<()> {
     loop {
@@ -74,6 +83,7 @@ async fn accept_loop(
 
                         let peer = Arc::new(Peer::from_registry(transport, registry.clone()));
                         let on_connect = on_connect.clone();
+                        let on_disconnect = on_disconnect.clone();
                         let close_rx = close_rx.clone();
 
                         tokio::spawn(async move {
@@ -84,6 +94,9 @@ async fn accept_loop(
                             tokio::select! {
                                 _ = peer.wait_closed() => {}
                                 _ = await_close(close_rx) => {}
+                            }
+                            if let Some(on_disconnect) = on_disconnect {
+                                on_disconnect(peer.clone());
                             }
                         });
                     }

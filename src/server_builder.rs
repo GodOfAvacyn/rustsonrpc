@@ -8,7 +8,7 @@ use crate::{
     params::DynamicParams,
     peer::{Handler, Peer},
     peer_builder::{register_service, Registry},
-    server::{OnConnect, Server},
+    server::{OnConnect, OnDisconnect, Server},
     service::Service,
 };
 
@@ -17,6 +17,7 @@ pub struct ServerBuilder {
     services: HashMap<u32, Arc<dyn Service>>,
     next_service_id: u32,
     on_connect: Option<OnConnect>,
+    on_disconnect: Option<OnDisconnect>,
 }
 
 impl ServerBuilder {
@@ -26,6 +27,7 @@ impl ServerBuilder {
             services: HashMap::new(),
             next_service_id: 0,
             on_connect: None,
+            on_disconnect: None,
         }
     }
 
@@ -59,7 +61,15 @@ impl ServerBuilder {
         self
     }
 
-    fn into_parts(self) -> (Registry, Option<OnConnect>) {
+    pub fn on_disconnect<F>(mut self, handler: F) -> ServerBuilder
+    where
+        F: Fn(Arc<Peer>) + Send + Sync + 'static,
+    {
+        self.on_disconnect = Some(Arc::new(handler));
+        self
+    }
+
+    fn into_parts(self) -> (Registry, Option<OnConnect>, Option<OnDisconnect>) {
         (
             Registry {
                 methods: self.methods,
@@ -67,6 +77,7 @@ impl ServerBuilder {
                 next_service_id: self.next_service_id,
             },
             self.on_connect,
+            self.on_disconnect,
         )
     }
 
@@ -75,8 +86,13 @@ impl ServerBuilder {
         addr: impl tokio::net::ToSocketAddrs + Send,
     ) -> Result<Server> {
         let listener = TcpListener::bind(addr).await?;
-        let (registry, on_connect) = self.into_parts();
-        Ok(Server::serve(Box::new(listener), registry, on_connect))
+        let (registry, on_connect, on_disconnect) = self.into_parts();
+        Ok(Server::serve(
+            Box::new(listener),
+            registry,
+            on_connect,
+            on_disconnect,
+        ))
     }
 
     pub async fn serve_ws(
@@ -84,8 +100,13 @@ impl ServerBuilder {
         addr: impl tokio::net::ToSocketAddrs + Send,
     ) -> Result<Server> {
         let listener = WsListener::bind(addr).await?;
-        let (registry, on_connect) = self.into_parts();
-        Ok(Server::serve(Box::new(listener), registry, on_connect))
+        let (registry, on_connect, on_disconnect) = self.into_parts();
+        Ok(Server::serve(
+            Box::new(listener),
+            registry,
+            on_connect,
+            on_disconnect,
+        ))
     }
 }
 
