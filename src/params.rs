@@ -24,6 +24,7 @@ impl DynamicParams {
     pub fn from_value(value: Option<Value>) -> Result<DynamicParams> {
         match value {
             Some(Value::Object(values)) => Ok(DynamicParams::new(values)),
+            Some(Value::Null) => Ok(DynamicParams::empty()),
             None => Ok(DynamicParams::empty()),
             _ => Err(JsonRpcError::invalid_params()),
         }
