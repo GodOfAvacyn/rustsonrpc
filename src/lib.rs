@@ -74,7 +74,7 @@ pub mod prelude {
         peer_builder::PeerBuilder,
         errors::{JsonRpcError, Result},
         peer::Peer,
-        params, rpc_method, rpc_service, DynamicParams, Params,
+        params, rpc_method, rpc_service, Params,
         server::Server,
         server_builder::ServerBuilder,
         service::Service,
