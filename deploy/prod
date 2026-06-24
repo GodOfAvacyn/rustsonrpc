@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+import argparse, re, subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+MAIN = ROOT / "Cargo.toml"
+MACROS = ROOT / "rustsonrpc-macros" / "Cargo.toml"
+
+def read_version(path):
+    return re.search(r'^version = "([^"]+)"', path.read_text(), re.M).group(1)
+
+def bump(v, part):
+    major, minor, patch = map(int, v.split("."))
+    if part == "major":
+        return f"{major + 1}.0.0"
+    if part == "minor":
+        return f"{major}.{minor + 1}.0"
+    return f"{major}.{minor}.{patch + 1}"
+
+def set_version(path, old, new):
+    text = path.read_text().replace(f'version = "{old}"', f'version = "{new}"', 1)
+    text = text.replace(f'rustsonrpc-macros = {{ version = "{old}"', f'rustsonrpc-macros = {{ version = "{new}"')
+    path.write_text(text)
+
+p = argparse.ArgumentParser()
+release = p.add_mutually_exclusive_group()
+release.add_argument("--minor", action="store_true")
+release.add_argument("--major", action="store_true")
+release.add_argument("--first", action="store_true")
+args = p.parse_args()
+
+part = "major" if args.major else "minor" if args.minor else "patch"
+old = read_version(MAIN)
+new = old if args.first else bump(old, part)
+
+set_version(MACROS, read_version(MACROS), new)
+set_version(MAIN, old, new)
+subprocess.run(["cargo", "publish"], cwd=ROOT / "rustsonrpc-macros", check=True)
+subprocess.run(["cargo", "publish"], cwd=ROOT, check=True)

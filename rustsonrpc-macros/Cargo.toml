@@ -2,6 +2,11 @@
 name = "rustsonrpc-macros"
 version = "0.1.0"
 edition = "2021"
+description = "Proc macros for rustsonrpc services and named JSON-RPC params."
+license = "MIT"
+repository = "https://github.com/GodOfAvacyn/rustsonrpc"
+keywords = ["json-rpc", "jsonrpc", "rpc", "proc-macro"]
+categories = ["asynchronous", "network-programming", "web-programming"]
 
 [lib]
 proc-macro = true
