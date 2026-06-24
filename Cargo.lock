@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "rustsonrpc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -325,7 +325,7 @@ dependencies = [
 
 [[package]]
 name = "rustsonrpc-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "quote",
